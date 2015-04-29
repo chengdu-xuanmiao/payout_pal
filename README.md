@@ -1,8 +1,7 @@
 # PayoutPal
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/payout_pal`. To experiment with that code, run `bin/console` for an interactive prompt.
+This gem aims to simplify the [payouts](https://developer.paypal.com/docs/api/#payouts) endpoint of PayPal's [rest API](https://developer.paypal.com/docs/api).
 
-TODO: Delete this and the text above, and describe your gem
 
 ## Installation
 
@@ -22,7 +21,33 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+PayoutPal.configure do |config|
+  config.mode = :live
+  config.client_id = config.paypal.client_id
+  config.client_secret = config.paypal.client_secret
+end
+
+batch_header = { email_subject: "Gobias Industries Payment" }
+
+payout_item = {
+  note: "Thank you for shopping at Gobias Industries",
+  amount: { value: "12.57", currency: "USD" },
+  receiver: "michael@bluth.com",
+  recipient_type: "EMAIL",
+  sender_item_id: "123456789"
+}
+
+# Creates a single Payout Item in sync mode (this endpoint: /v1/payments/payouts?sync_mode=true)
+payout_item = PayoutPal.create_payout(payout_item, batch_header: batch_header)
+
+
+# ...
+
+# Retrieve PayPal Payout item (this endpoint: /v1/payments/payouts-item/<Payout-Item-Id>)
+payout_item = PayoutPal.payout(payout_item_id)
+```
+
 
 ## Development
 
