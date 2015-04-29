@@ -1,0 +1,56 @@
+{
+  "batch_header": {
+    "payout_batch_id": "PQT78VW24P758",
+    "batch_status": "SUCCESS",
+    "time_created": "2015-04-29T16:34:13Z",
+    "time_completed": "2015-04-29T16:34:15Z",
+    "sender_batch_header": {
+      "email_subject": "Gobias Industries Payment"
+    },
+    "amount": {
+      "currency": "USD",
+      "value": "12.57"
+    },
+    "fees": {
+      "currency": "USD",
+      "value": "0.25"
+    }
+  },
+  "items": [
+    {
+      "payout_item_id": "P3FKTDYE3DHMG",
+      "transaction_id": "9XG38325MU8441712",
+      "transaction_status": "SUCCESS",
+      "payout_item_fee": {
+        "currency": "USD",
+        "value": "0.25"
+      },
+      "payout_batch_id": "PQT78VW24P758",
+      "payout_item": {
+        "amount": {
+          "currency": "USD",
+          "value": "12.57"
+        },
+        "note": "Thank you for shopping at Gobias Industries",
+        "receiver": "michael@bluth.com",
+        "recipient_type": "EMAIL",
+        "sender_item_id": "123456789"
+      },
+      "time_processed": "2015-04-29T16:34:15Z",
+      "links": [
+        {
+          "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/P3FKTDYE3DHMG",
+          "rel": "item",
+          "method": "GET"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "href": "https://api.sandbox.paypal.com/v1/payments/payouts/PQT78VW24P758",
+      "rel": "self",
+      "method": "GET"
+    }
+  ]
+}
