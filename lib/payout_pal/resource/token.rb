@@ -3,14 +3,14 @@ module PayoutPal
     module Token
 
       # If token is already expired, or will expire within
-      # `EXPIRATION_PADDING` time from now, refresh token.
+      # `EXPIRATION_PADDING` seconds from now, refresh token.
       EXPIRATION_PADDING = 2.freeze
 
       def token
         if expired?
           time_request_was_issued = Time.now
           @token = request_token
-          @expires_at = time_request_was_issued + @token.expires_in
+          @expires_at = time_request_was_issued + (@token.expires_in - EXPIRATION_PADDING)
         end
 
         @token
@@ -20,7 +20,7 @@ module PayoutPal
       private
 
       def expired?
-        Time.now >= (expires_at - EXPIRATION_PADDING)
+        Time.now >= expires_at
       end
 
       def expires_at

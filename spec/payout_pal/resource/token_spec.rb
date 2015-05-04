@@ -40,7 +40,7 @@ describe PayoutPal::Resource::Token do
 
         # New token and expiration values are cached
         expect(PayoutPal.instance_variable_get(:@token)).to eq(token)
-        expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800)
+        expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800 - PayoutPal::Resource::Token::EXPIRATION_PADDING)
       end
     end
 
@@ -70,7 +70,7 @@ describe PayoutPal::Resource::Token do
 
           # New token and expiration values are cached
           expect(PayoutPal.instance_variable_get(:@token)).to eq(token)
-          expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800)
+          expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800 - PayoutPal::Resource::Token::EXPIRATION_PADDING)
         end
       end
 
