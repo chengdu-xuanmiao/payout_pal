@@ -8,96 +8,69 @@ describe PayoutPal::Resource::Token do
       config.client_secret = "456ABC"
     end
 
-    PayoutPal.instance_variable_set(:@token, nil)
-    PayoutPal.instance_variable_set(:@expires_at, nil)
-
     @local_time = Time.local(2015, 3, 14, 10, 5, 0)
-    @cached_token = Hashie::Mash.new(JSON.parse(PayoutPal::Stubs["token"]))
-
     Timecop.freeze(@local_time)
   end
 
+  after do
+    PayoutPal.instance_variable_set(:@token, nil)
+    PayoutPal.instance_variable_set(:@expires_at, nil)
+  end
+
   describe ".token" do
-    context "when no previous access token exists" do
-      it "requests the access token from the API" do
-        stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
-          .with({
-            body: { grant_type: "client_credentials", response_type: "token" },
-            headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
-          })
-          .to_return(status: 200, body: PayoutPal::Stubs["token"])
+    it "requests and caches a token for the duration of the token's life" do
+      stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
+        .with({
+          body: { grant_type: "client_credentials", response_type: "token" },
+          headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
+        })
+        .to_return(status: 200, body: PayoutPal::Stubs["token"])
 
-        # Ensure HTTP POST request IS being made
-        expect(RestClient).to receive(:post).exactly(1).times.and_call_original
 
-        token = PayoutPal.token
+      allow(RestClient).to receive(:post).and_call_original
 
-        expect(token.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
-        expect(token.access_token).to eq("A015z9qL")
-        expect(token.token_type).to eq("Bearer")
-        expect(token.app_id).to eq("APP-80W284485P519543T")
-        expect(token.expires_in).to eq(28800)
+      # First call, there is no cached token,
+      # make an API request for a new token.
+      token1 = PayoutPal.token
+      expect(RestClient).to have_received(:post).exactly(1).times
 
-        # New token and expiration values are cached
-        expect(PayoutPal.instance_variable_get(:@token)).to eq(token)
-        expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800 - PayoutPal::Resource::Token::EXPIRATION_PADDING)
-      end
+      expect(token1.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
+      expect(token1.access_token).to eq("A015z9qL")
+      expect(token1.token_type).to eq("Bearer")
+      expect(token1.app_id).to eq("APP-80W284485P519543T")
+
+      # The token expires in 1 hour
+      expect(token1.expires_in).to eq(3600)
+
+
+      # 55 minutes since we recieved the token, a second call is made.
+      # A non-expired, cached token exists, so let's return that.
+      Timecop.travel(@local_time + 3300)
+      token2 = PayoutPal.token
+      expect(RestClient).to have_received(:post).exactly(1).times
+
+      # This new token is the same object in memory
+      expect(token2).to equal(token1)
+
+
+      # 59 minutes and 59 seconds since we received the token,
+      # a third call is made. We do have a cached token, but it
+      # is now expired. Make an API request for a new token.
+      Timecop.travel(@local_time + 3599)
+      token3 = PayoutPal.token
+      expect(RestClient).to have_received(:post).exactly(2).times
+
+      # This new token is NOT the same object in memory
+      expect(token3).not_to equal(token1)
+
+
+      expect(token3.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
+      expect(token3.access_token).to eq("A015z9qL")
+      expect(token3.token_type).to eq("Bearer")
+      expect(token3.app_id).to eq("APP-80W284485P519543T")
+      expect(token3.expires_in).to eq(3600)
     end
 
-    context "when an access token exists" do
-      context "when expired" do
-        it "requests a new token" do
-          PayoutPal.instance_variable_set(:@token, @cached_token)
-          PayoutPal.instance_variable_set(:@expires_at, @local_time)
-
-          stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
-            .with({
-              body: { grant_type: "client_credentials", response_type: "token" },
-              headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
-            })
-            .to_return(status: 200, body: PayoutPal::Stubs["token"])
-
-          # Ensure HTTP POST request IS being made
-          expect(RestClient).to receive(:post).exactly(1).times.and_call_original
-
-          token = PayoutPal.token
-
-          expect(token.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
-          expect(token.access_token).to eq("A015z9qL")
-          expect(token.token_type).to eq("Bearer")
-          expect(token.app_id).to eq("APP-80W284485P519543T")
-          expect(token.expires_in).to eq(28800)
-
-          # New token and expiration values are cached
-          expect(PayoutPal.instance_variable_get(:@token)).to eq(token)
-          expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(@local_time + 28800 - PayoutPal::Resource::Token::EXPIRATION_PADDING)
-        end
-      end
-
-      context "when not expired" do
-        it "uses the cached token" do
-          expires_at = @local_time + 20
-
-          PayoutPal.instance_variable_set(:@token, @cached_token)
-          PayoutPal.instance_variable_set(:@expires_at, expires_at)
-
-          # Ensure HTTP POST request is NOT being made
-          expect(RestClient).to receive(:post).exactly(0).times.and_call_original
-
-          token = PayoutPal.token
-
-          expect(token.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
-          expect(token.access_token).to eq("A015z9qL")
-          expect(token.token_type).to eq("Bearer")
-          expect(token.app_id).to eq("APP-80W284485P519543T")
-          expect(token.expires_in).to eq(28800)
-
-          # Token and expiration values are unchanged
-          expect(PayoutPal.instance_variable_get(:@token)).to eq(token)
-          expect(PayoutPal.instance_variable_get(:@expires_at)).to eq(expires_at)
-        end
-      end
-    end
 
     context "when credentials are invalid" do
       it "raises PayoutPal::BadRequest" do

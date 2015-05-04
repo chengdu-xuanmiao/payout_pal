@@ -7,10 +7,13 @@ describe PayoutPal::Resource::Payout do
       config.client_id = "123XYZ"
       config.client_secret = "456ABC"
     end
+  end
 
+  after do
     PayoutPal.instance_variable_set(:@token, nil)
     PayoutPal.instance_variable_set(:@expires_at, nil)
   end
+
 
   describe ".create_payout" do
     it "creates a payout" do
