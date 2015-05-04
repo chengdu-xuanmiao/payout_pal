@@ -16,6 +16,7 @@
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
 require 'webmock/rspec'
+require 'timecop'
 require 'payout_pal'
 
 require File.join(File.dirname(File.expand_path(__FILE__)), "stubs/stubs")
