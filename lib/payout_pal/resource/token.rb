@@ -2,15 +2,32 @@ module PayoutPal
   module Resource
     module Token
 
-      # If token is already expired, or will expire within
-      # `EXPIRATION_PADDING` seconds from now, refresh token.
-      EXPIRATION_PADDING = 2.freeze
+      module Expiration
+        # Some extra time (in seconds) to pad the actual
+        # `expires_at` value, so that it will expire slightly
+        # before its original expiration value.
+        EXPIRATION_PADDING = 2.freeze
+
+        def expired?
+          Time.now >= expires_at
+        end
+
+        def expires_at
+          @expires_at || Time.now
+        end
+
+        def expires_at=(time)
+          @expires_at = (time - EXPIRATION_PADDING)
+        end
+      end
+      include Expiration
+
 
       def token
         if expired?
           time_request_was_issued = Time.now
-          @token = request_token
-          @expires_at = time_request_was_issued + (@token.expires_in - EXPIRATION_PADDING)
+          self.token = request_token
+          self.expires_at = time_request_was_issued + @token.expires_in
         end
 
         @token
@@ -19,13 +36,7 @@ module PayoutPal
 
       private
 
-      def expired?
-        Time.now >= expires_at
-      end
-
-      def expires_at
-        @expires_at || Time.now
-      end
+      attr_writer :token
 
       def serialized_authorization_params
         [ basic_auth_user_password ].pack('m').delete("\r\n")
