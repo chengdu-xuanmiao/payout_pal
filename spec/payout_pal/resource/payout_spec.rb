@@ -1,63 +1,15 @@
 require 'spec_helper'
 
-describe PayoutPal do
+describe PayoutPal::Resource::Payout do
   before do
     PayoutPal.configure do |config|
       config.mode = :sandbox
       config.client_id = "123XYZ"
       config.client_secret = "456ABC"
     end
-  end
 
-  describe ".token" do
-    context "when successful" do
-      it "retrieves an access token" do
-        stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
-          .with({
-            body: { grant_type: "client_credentials", response_type: "token" },
-            headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
-          })
-          .to_return(status: 200, body: PayoutPal::Stubs["token"])
-
-        token = PayoutPal.token
-
-        expect(token.scope).to eq("https://uri.paypal.com/services/subscriptions https://api.paypal.com/v1/payments/.* https://api.paypal.com/v1/vault/credit-card https://uri.paypal.com/services/applications/webhooks openid https://uri.paypal.com/services/invoicing https://uri.paypal.com/payments/payouts https://api.paypal.com/v1/vault/credit-card/.*")
-        expect(token.access_token).to eq("A015z9qLyfanaocsFlXM0QbwiPnsEDMoY1O2Wiq6RptXscA")
-        expect(token.token_type).to eq("Bearer")
-        expect(token.app_id).to eq("APP-80W284485P519543T")
-        expect(token.expires_in).to eq(28800)
-      end
-    end
-
-    context "when unsuccessful" do
-      context "when credentials are invalid" do
-        it "raises PayoutPal::BadRequest" do
-          response_body_json = JSON.generate({error: "invalid_client", error_description: "Client secret does not match for this client"})
-
-          stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
-            .with({
-              body: { grant_type: "client_credentials", response_type: "token" },
-              headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
-            })
-            .to_return(status: 401, body: response_body_json)
-
-          expect(-> { PayoutPal.token }).to raise_error(PayoutPal::BadRequest, response_body_json)
-        end
-      end
-
-      context "when the server errors" do
-        it "raises PayoutPal::Error" do
-          stub_request(:post, "https://123XYZ:456ABC@api.sandbox.paypal.com/v1/oauth2/token")
-            .with({
-              body: { grant_type: "client_credentials", response_type: "token" },
-              headers: { "Accept" => "application/json", "Content-Type" => "application/x-www-form-urlencoded" }
-            })
-            .to_return(status: 500, body: "")
-
-          expect(-> { PayoutPal.token }).to raise_error(PayoutPal::Error, "HTTP Status: 500 | HTTP Body: ")
-        end
-      end
-    end
+    PayoutPal.instance_variable_set(:@token, nil)
+    PayoutPal.instance_variable_set(:@expires_at, nil)
   end
 
   describe ".create_payout" do
