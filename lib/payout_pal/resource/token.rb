@@ -8,16 +8,22 @@ module PayoutPal
         # before its original expiration value.
         EXPIRATION_PADDING = 2.freeze
 
+        private
+
         def expired?
           Time.now >= expires_at
         end
 
         def expires_at
-          @expires_at || Time.now
+          @expires_at || epoch_time
         end
 
         def expires_at=(time)
           @expires_at = (time - EXPIRATION_PADDING)
+        end
+
+        def epoch_time
+          Time.at(0)
         end
       end
       include Expiration
