@@ -13,6 +13,9 @@ module PayoutPal
         post "/v1/payments/payouts", params: JSON.generate(payout), headers: authorization_header do |response, *_|
           case response.code
           when 201
+            puts '----------------'
+            puts response.body
+            puts '----------------'
             payout_batch = JSON.parse(response.body)
             payout_item = payout_batch["items"].first
             payout_item["links"] += payout_batch["links"]
