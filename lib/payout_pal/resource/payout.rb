@@ -10,7 +10,7 @@ module PayoutPal
           sender_batch_header: sender_batch_header
         }
 
-        post "/v1/payments/payouts?sync_mode=true", params: JSON.generate(payout), headers: authorization_header do |response, *_|
+        post "/v1/payments/payouts", params: JSON.generate(payout), headers: authorization_header do |response, *_|
           case response.code
           when 201
             payout_batch = JSON.parse(response.body)
